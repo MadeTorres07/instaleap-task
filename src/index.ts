@@ -1,4 +1,6 @@
 import express from 'express';
+import { errorHandler } from './api/middlewares/errorHandler.js';
+import { authRouter } from './api/routes/auth.routes.js';
 import { env } from './config/env.config.js';
 import { testConnection } from './persistence/db.js';
 
@@ -12,6 +14,10 @@ app.get('/', (_req, res) => {
     message: 'API funcionando',
   });
 });
+
+app.use('/auth', authRouter);
+
+app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
   const databaseConnected = await testConnection();
