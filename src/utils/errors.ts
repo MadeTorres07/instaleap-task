@@ -36,3 +36,12 @@ export class ConflictError extends HttpError {
     super(409, message, 'CONFLICT', details);
   }
 }
+
+export class AuthenticationError extends HttpError {
+  public constructor(
+    message = 'Credenciales inválidas.',
+    details?: unknown,
+  ) {
+    super(401, message, 'UNAUTHORIZED', details);
+  }
+}

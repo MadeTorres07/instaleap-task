@@ -65,6 +65,8 @@ export interface EnvVars {
   readonly DB_USER: string;
   readonly DB_PASSWORD: string;
   readonly DB_NAME: string;
+  readonly JWT_SECRET: string;
+  readonly JWT_EXPIRES_IN: string;
 }
 
 /**
@@ -85,6 +87,8 @@ export class EnvSingleton {
   public readonly DB_USER: string;
   public readonly DB_PASSWORD: string;
   public readonly DB_NAME: string;
+  public readonly JWT_SECRET: string;
+  public readonly JWT_EXPIRES_IN: string;
 
   private constructor() {
     dotenv.config({
@@ -99,6 +103,8 @@ export class EnvSingleton {
     this.DB_USER = required('DB_USER');
     this.DB_PASSWORD = required('DB_PASSWORD');
     this.DB_NAME = required('DB_NAME');
+    this.JWT_SECRET = required('JWT_SECRET');
+    this.JWT_EXPIRES_IN = optional('JWT_EXPIRES_IN', '1h');
 
     // Evita que la configuración sea modificada en tiempo de ejecución.
     Object.freeze(this);
@@ -122,6 +128,8 @@ export class EnvSingleton {
       DB_USER: this.DB_USER,
       DB_PASSWORD: this.DB_PASSWORD,
       DB_NAME: this.DB_NAME,
+      JWT_SECRET: this.JWT_SECRET,
+      JWT_EXPIRES_IN: this.JWT_EXPIRES_IN,
     });
   }
 }

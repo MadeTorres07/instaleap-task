@@ -1,7 +1,14 @@
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import type { SignOptions } from 'jsonwebtoken';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { env } from '../config/env.config.js';
 import { pool } from '../persistence/db.js';
-import { BadRequestError, ConflictError } from '../utils/errors.js';
+import {
+  AuthenticationError,
+  BadRequestError,
+  ConflictError,
+} from '../utils/errors.js';
 
 const SALT_ROUNDS = 10;
 const BCRYPT_MAX_BYTES = 72;
@@ -18,8 +25,22 @@ export interface RegisteredUser {
   email: string;
 }
 
+export interface LoginUserInput {
+  email: string;
+  password: string;
+}
+
+export interface LoginResult {
+  token: string;
+}
+
 interface ExistingUserRow extends RowDataPacket {
   id: number;
+}
+
+interface LoginUserRow extends RowDataPacket {
+  id: number;
+  password: string;
 }
 
 function isDuplicateEntryError(error: unknown): boolean {
@@ -77,4 +98,43 @@ export async function registerUser(
 
     throw error;
   }
+}
+
+/**
+ * Valida las credenciales y devuelve un JWT firmado con el id del usuario.
+ */
+export async function loginUser(input: LoginUserInput): Promise<LoginResult> {
+  const email = input.email.trim().toLowerCase();
+
+  const [users] = await pool.execute<LoginUserRow[]>(
+    'SELECT id, password FROM users WHERE email = ? LIMIT 1',
+    [email],
+  );
+
+  const user = users[0];
+
+  if (!user) {
+    throw new AuthenticationError();
+  }
+
+  const passwordMatches = await bcrypt.compare(input.password, user.password);
+
+  if (!passwordMatches) {
+    throw new AuthenticationError();
+  }
+
+  const expiresIn = env.JWT_EXPIRES_IN as NonNullable<
+    SignOptions['expiresIn']
+  >;
+
+  const token = jwt.sign(
+    { id: user.id },
+    env.JWT_SECRET,
+    {
+      algorithm: 'HS256',
+      expiresIn,
+    },
+  );
+
+  return { token };
 }

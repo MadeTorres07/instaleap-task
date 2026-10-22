@@ -1,7 +1,10 @@
-import { Ajv, type ErrorObject } from 'ajv';
+import { Ajv, type ErrorObject, type ValidateFunction } from 'ajv';
 import addFormatsModule from 'ajv-formats';
 import type { RequestHandler } from 'express';
-import type { RegisterUserInput } from '../../services/auth.service.js';
+import type {
+  LoginUserInput,
+  RegisterUserInput,
+} from '../../services/auth.service.js';
 import { BadRequestError } from '../../utils/errors.js';
 
 type AddFormats = (instance: Ajv) => Ajv;
@@ -43,7 +46,26 @@ export const registerUserSchema = {
   },
 };
 
+export const loginUserSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['email', 'password'],
+  properties: {
+    email: {
+      type: 'string',
+      format: 'email',
+      maxLength: 255,
+    },
+    password: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 72,
+    },
+  },
+};
+
 const validateRegisterBody = ajv.compile<RegisterUserInput>(registerUserSchema);
+const validateLoginBody = ajv.compile<LoginUserInput>(loginUserSchema);
 
 function formatValidationErrors(
   errors: ErrorObject[] | null | undefined,
@@ -67,18 +89,33 @@ function formatValidationErrors(
   });
 }
 
-export const validateRegister: RequestHandler = (req, _res, next) => {
-  const payload: unknown = req.body;
+function createValidationMiddleware<T>(
+  validate: ValidateFunction<T>,
+  errorMessage: string,
+): RequestHandler {
+  return (req, _res, next) => {
+    const payload: unknown = req.body;
 
-  if (!validateRegisterBody(payload)) {
-    next(
-      new BadRequestError(
-        'Datos de registro inválidos.',
-        formatValidationErrors(validateRegisterBody.errors),
-      ),
-    );
-    return;
-  }
+    if (!validate(payload)) {
+      next(
+        new BadRequestError(
+          errorMessage,
+          formatValidationErrors(validate.errors),
+        ),
+      );
+      return;
+    }
 
-  next();
-};
+    next();
+  };
+}
+
+export const validateRegister = createValidationMiddleware(
+  validateRegisterBody,
+  'Datos de registro inválidos.',
+);
+
+export const validateLogin = createValidationMiddleware(
+  validateLoginBody,
+  'Datos de login inválidos.',
+);
