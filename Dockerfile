@@ -35,6 +35,7 @@ WORKDIR /app
 
 # package.json es necesario para conservar "type": "module".
 COPY --chown=node:node package.json ./
+COPY --chown=node:node swagger.yaml ./
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/dist ./dist
 
