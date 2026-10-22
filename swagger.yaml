@@ -21,6 +21,8 @@ info:
     email: backend@example.com
 
 servers:
+  - url: https://instaleap-task.onrender.com
+    description: Servidor en la nube (Render)
   - url: http://localhost:3000
     description: Servidor local
 
