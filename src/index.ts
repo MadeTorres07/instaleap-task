@@ -1,6 +1,7 @@
 import express from 'express';
 import { errorHandler } from './api/middlewares/errorHandler.js';
 import { authRouter } from './api/routes/auth.routes.js';
+import { tasksRouter } from './api/routes/tasks.routes.js';
 import { env } from './config/env.config.js';
 import { testConnection } from './persistence/db.js';
 
@@ -16,6 +17,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use('/auth', authRouter);
+app.use('/tasks', tasksRouter);
 
 app.use(errorHandler);
 

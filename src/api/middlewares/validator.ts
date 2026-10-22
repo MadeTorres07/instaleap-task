@@ -89,7 +89,7 @@ function formatValidationErrors(
   });
 }
 
-function createValidationMiddleware<T>(
+export function createValidationMiddleware<T>(
   validate: ValidateFunction<T>,
   errorMessage: string,
 ): RequestHandler {

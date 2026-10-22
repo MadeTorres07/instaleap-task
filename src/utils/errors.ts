@@ -45,3 +45,18 @@ export class AuthenticationError extends HttpError {
     super(401, message, 'UNAUTHORIZED', details);
   }
 }
+
+export class ForbiddenError extends HttpError {
+  public constructor(
+    message = 'No tienes permisos para acceder a este recurso.',
+    details?: unknown,
+  ) {
+    super(403, message, 'FORBIDDEN', details);
+  }
+}
+
+export class NotFoundError extends HttpError {
+  public constructor(message = 'Recurso no encontrado.', details?: unknown) {
+    super(404, message, 'NOT_FOUND', details);
+  }
+}
