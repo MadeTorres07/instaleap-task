@@ -1,0 +1,94 @@
+# Servicios de la API y MySQL.
+# Las variables sin valor por defecto son obligatorias y pueden definirse
+# en un archivo .env junto a este docker-compose.yml.
+
+services:
+  # -------------------------------------------------------------------------
+  # Base de datos MySQL 8.0
+  # -------------------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: instaleap-db
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "instaleap_db"
+      MYSQL_USER: "instaleap"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?Define MYSQL_PASSWORD}"
+
+    # Persistencia de los datos entre reinicios y recreaciones.
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    # Esperar a que MySQL acepte conexiones antes de arrancar la API.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -u root -p\"$${MYSQL_ROOT_PASSWORD}\" --silent",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    # La base de datos solo es accesible dentro de la red de Compose.
+    networks:
+      - backend
+
+  # -------------------------------------------------------------------------
+  # API Node.js + TypeScript
+  # -------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: instaleap-api
+    restart: unless-stopped
+
+    # Usa un init ligero para manejar correctamente las señales del proceso.
+    init: true
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    environment:
+      NODE_ENV: "production"
+      PORT: "3000"
+
+      # "db" es el nombre del servicio dentro de la red de Compose.
+      DB_HOST: "db"
+      DB_PORT: "3306"
+      DB_USER: "instaleap"
+      DB_PASSWORD: "${MYSQL_PASSWORD:?Define MYSQL_PASSWORD}"
+      DB_NAME: "instaleap_db"
+
+      JWT_SECRET: "${JWT_SECRET:?Define JWT_SECRET}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
+
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    networks:
+      - backend
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge
